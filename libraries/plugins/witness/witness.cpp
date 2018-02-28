@@ -146,7 +146,14 @@ void miner_plugin::plugin_initialize(const boost::program_options::variables_map
          _private_keys[key_id_to_wif_pair.first] = *private_key;
       }
    }
-   
+   if (options.count("min_gas_price"))
+   {
+       min_gas_price =options["min_gas_price"].as<int>();
+   }
+   else
+   {
+       min_gas_price = 1;
+   }
    ilog("miner plugin:  plugin_initialize() end");
 } FC_LOG_AND_RETHROW() }
 
@@ -283,8 +290,8 @@ fc::variant miner_plugin::check_generate_multi_addr(miner_id_type miner,fc::ecc:
 			if (symbol_addrs_cold.size() == guard_ids.size() && symbol_addrs_hot.size() == guard_ids.size())
 			{
 				
-				auto multi_addr_cold_obj = crosschain_interface->create_multi_sig_account(iter.symbol+"_cold", symbol_addrs_cold, std::ceil(symbol_addrs_cold.size()*2/3));
-				auto multi_addr_hot_obj = crosschain_interface->create_multi_sig_account(iter.symbol + "_hot", symbol_addrs_hot, std::ceil(symbol_addrs_hot.size() * 2 / 3));
+				auto multi_addr_cold_obj = crosschain_interface->create_multi_sig_account(iter.symbol+"_cold", symbol_addrs_cold, std::ceil(symbol_addrs_cold.size()*2.0/3.0));
+				auto multi_addr_hot_obj = crosschain_interface->create_multi_sig_account(iter.symbol + "_hot", symbol_addrs_hot, std::ceil(symbol_addrs_hot.size() * 2.0 / 3.0));
 				signed_transaction trx;
 				miner_generate_multi_asset_operation op;
 				uint32_t expiration_time_offset = 0;
@@ -324,7 +331,7 @@ void miner_plugin::check_multi_transfer(miner_id_type miner, fc::ecc::private_ke
 		
 		for (auto transfer : transfers)
 		{
-			if (transfer.signatures.size() >= std::ceil(guard_ids.size() * 2 / 3))
+			if (transfer.signatures.size() >= std::ceil(guard_ids.size() * 2.0 / 3.0))
 			{
 				miner_merge_signatures_operation op;
 				op.miner = miner;
@@ -350,6 +357,7 @@ block_production_condition::block_production_condition_enum miner_plugin::maybe_
    chain::database& db = database();
    fc::time_point now_fine = fc::time_point::now();
    fc::time_point_sec now = now_fine + fc::microseconds( 500000 );
+   db.set_min_gas_price(min_gas_price);
 
    // If the next block production opportunity is in the present or future, we're synced.
    if( !_production_enabled )
@@ -411,6 +419,9 @@ block_production_condition::block_production_condition_enum miner_plugin::maybe_
    //through this to generate new multi-addr
    auto varient_obj = check_generate_multi_addr(scheduled_miner, private_key_itr->second);
    db.create_result_transaction(scheduled_miner, private_key_itr->second);
+   db.create_coldhot_transfer_trx(scheduled_miner, private_key_itr->second);
+   db.combine_coldhot_sign_transaction(scheduled_miner, private_key_itr->second);
+
    db.combine_sign_transaction(scheduled_miner, private_key_itr->second);
    db.create_acquire_crosschhain_transaction(scheduled_miner, private_key_itr->second);
    check_multi_transfer(scheduled_miner, private_key_itr->second);

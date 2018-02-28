@@ -20,8 +20,10 @@ namespace graphene {
 		class crosschain_privatekey_base
 		{
 		public:
+
 			crosschain_privatekey_base();
 			crosschain_privatekey_base(fc::ecc::private_key& priv_key);
+
 			std::string  sign_trx(const std::string& script, const std::string& raw_trx);
 			std::string  sign_message(const std::string& msg);
 
@@ -87,6 +89,7 @@ namespace graphene {
 			void init();
 
 		};
+
 
 		class crosschain_management
 		{

@@ -31,6 +31,7 @@
 #include <graphene/chain/genesis_state.hpp>
 #include <graphene/chain/evaluator.hpp>
 #include <graphene/chain/crosschain_trx_object.hpp>
+#include <graphene/chain/coldhot_transfer_object.hpp>
 #include <graphene/db/object_database.hpp>
 #include <graphene/db/object.hpp>
 #include <graphene/db/simple_index.hpp>
@@ -76,7 +77,8 @@ namespace graphene { namespace chain {
             skip_assert_evaluation      = 1 << 8,  ///< used while reindexing
             skip_undo_history_check     = 1 << 9,  ///< used while reindexing
             skip_witness_schedule_check = 1 << 10,  ///< used while reindexing
-            skip_validate               = 1 << 11 ///< used prior to checkpoint, skips validate() call on transaction
+            skip_validate               = 1 << 11, ///< used prior to checkpoint, skips validate() call on transaction
+            check_gas_price       = 1 << 12
          };
 
          /**
@@ -248,6 +250,14 @@ namespace graphene { namespace chain {
 
          void update_miner_schedule();
 
+		 void pay_miner(const miner_id_type& miner_id);
+
+
+		 void reset_current_collected_fee();
+
+		 void modify_current_collected_fee(share_type changed_fee);
+
+
 		 void update_witness_random_seed(const SecretHashType& new_secret);
 
          //////////////////// db_getter.cpp ////////////////////
@@ -299,9 +309,43 @@ namespace graphene { namespace chain {
 			 transaction_id_type transaction_id,
 			 signed_transaction real_transaction,
 			 uint64_t op_type,
-			 transaction_stata trx_state);
+			 transaction_stata trx_state,
+			 vector<transaction_id_type> relate_transaction_ids = vector<transaction_id_type>());
+		 void adjust_coldhot_transaction(transaction_id_type relate_trx_id,
+			 transaction_id_type current_trx_id,
+			 signed_transaction current_trx,
+			 uint64_t op_type
+			 );
+		 void create_coldhot_transfer_trx(miner_id_type miner, fc::ecc::private_key pk);
+		 void combine_coldhot_sign_transaction(miner_id_type miner, fc::ecc::private_key pk);
+
 		 void adjust_deposit_to_link_trx(const hd_trx& handled_trx);
 		 void adjust_crosschain_confirm_trx(const hd_trx& handled_trx);
+		 //////contract//////
+		 StorageDataType get_contract_storage(const address& contract_id, const string& name);
+		 void set_contract_storage(const address& contract_id, const string& name, const StorageDataType &value);
+		 void set_contract_storage_in_contract(const contract_object& contract, const string& name, const StorageDataType& value);
+		 void add_contract_storage_change(const transaction_id_type& trx_id, const address& contract_id, const string& name, const StorageDataType &diff);
+		 void add_contract_event_notify(const transaction_id_type& trx_id, const address& contract_id, const string& event_name, const string& event_arg);
+
+
+         void store_contract(const contract_object& contract);
+		 void update_contract(const contract_object& contract);
+         contract_object get_contract(const address& contract_address);
+         contract_object get_contract(const contract_id_type& id);
+		 contract_object get_contract_of_name(const string& contract_name);
+		 bool has_contract(const address& contract_address);
+		 bool has_contract_of_name(const string& contract_name);
+
+         void set_min_gas_price(const share_type min_price);
+         share_type get_min_gas_price() const;
+         //contract_balance//
+         asset get_contract_balance(const address& addr,const asset_id_type& asset_id);
+         void adjust_contract_balance(const address& addr, const asset& delta);
+
+         //get account address by account name
+         address get_account_address(const string& name);
+
          //////////////////// db_balance.cpp ////////////////////
 		 //get lattest multi_asset_objects
 		 vector<multisig_address_object> get_multisig_address_list();
@@ -329,7 +373,28 @@ namespace graphene { namespace chain {
 		 * @param account ID of account whose balance should be adjusted
 		 * @param delta Asset ID and amount to adjust balance by
 		 */
-		 void adjust_balance(address addr, asset delta);
+		 void adjust_balance(address addr, asset delta, bool freeze = false);
+
+		 /**
+		 * @brief Adjust a particular account's balance in a given asset by a delta
+		 * @param account ID of account whose balance should be adjusted
+		 * @param delta Asset ID and amount to adjust balance by
+		 */
+		 void adjust_frozen(address addr, asset delta);
+		 /**
+		 * @brief Adjust a particular account's balance in a given asset by a delta
+		 * @param account ID of account whose balance should be adjusted
+		 * @param delta Asset ID and amount to adjust balance by
+		 */
+		 void cancel_frozen(address addr,asset delta);
+
+
+		 /**
+		 * @brief Adjust a particular account's balance in a given asset by a delta
+		 * @param account ID of account whose balance should be adjusted
+		 * @param delta Asset ID and amount to adjust balance by
+		 */
+		 void adjust_guarantee(const guarantee_object_id_type id, const asset& target_asset);
          /**
           * @brief Helper to make lazy deposit to CDD VBO.
           *
@@ -367,7 +432,7 @@ namespace graphene { namespace chain {
          void globally_settle_asset( const asset_object& bitasset, const price& settle_price );
          void cancel_order(const force_settlement_object& order, bool create_virtual_op = true);
          void cancel_order(const limit_order_object& order, bool create_virtual_op = true);
-
+         
          /**
           * @brief Process a new limit order through the markets
           * @param order The new order to process
@@ -523,10 +588,14 @@ namespace graphene { namespace chain {
          vector<uint64_t>                  _witness_count_histogram_buffer;
          vector<uint64_t>                  _guard_count_histogram_buffer;
          uint64_t                          _total_voting_stake;
+		 share_type						   _total_collected_fee;
 
          flat_map<uint32_t,block_id_type>  _checkpoints;
 
          node_property_object              _node_property_object;
+
+         //gas_price check
+         share_type                        _min_gas_price=1;
    };
 
    namespace detail

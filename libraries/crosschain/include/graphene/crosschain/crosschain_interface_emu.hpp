@@ -54,14 +54,17 @@ namespace graphene {
 			virtual fc::variant_object transaction_query(std::string trx_id) override ;
 			virtual fc::variant_object transfer(std::string &from_account, std::string &to_account, uint64_t amount, std::string &symbol, std::string &memo, bool broadcast = true) override ;
 			virtual fc::variant_object create_multisig_transaction(std::string &from_account, std::string &to_account, const std::string& amount, std::string &symbol, std::string &memo, bool broadcast = true) override ;
+			virtual fc::variant_object create_multisig_transaction(std::string &from_account, const std::map<std::string, std::string> dest_info, std::string &symbol, std::string &memo, const std::string& prk) override;
 			virtual std::string sign_multisig_transaction(fc::variant_object trx, std::string &sign_account, const std::string& redeemScript,bool broadcast = true) override ;
 			virtual fc::variant_object merge_multisig_transaction(fc::variant_object &trx, std::vector<std::string> signatures) override ;
 			virtual bool validate_link_trx(const hd_trx &trx) override ;
 			virtual bool validate_link_trx(const std::vector<hd_trx> &trx) override ;
 			virtual bool validate_other_trx(const fc::variant_object &trx) override ;
+			virtual bool validate_address(const std::string& addr) override;
 			virtual bool validate_signature(const std::string &account, const std::string &content, const std::string &signature) override;
-			virtual bool create_signature(const std::string &account, const std::string &content, std::string &signature) override;
+			virtual bool create_signature(const std::string &account, const std::string &content, std::string &signature, const std::string& prk) override;
 			virtual hd_trx turn_trx(const fc::variant_object & trx) override;
+			virtual std::map<std::string, graphene::crosschain::hd_trx> turn_trxs(const fc::variant_object & trx)override;
 			virtual void broadcast_transaction(const fc::variant_object &trx) override ;
 			virtual std::vector<fc::variant_object> query_account_balance(const std::string &account) override ;
 			virtual std::vector<fc::variant_object> transaction_history(std::string symbol, std::string &user_account, uint32_t start_block, uint32_t limit, uint32_t& end_block_num) override ;

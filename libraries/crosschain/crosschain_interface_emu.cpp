@@ -32,6 +32,12 @@ namespace graphene {
 			save_wallet_file(_plugin_wallet_filepath + wallet_name);
 
 		}
+		std::map<std::string, graphene::crosschain::hd_trx> crosschain_interface_emu::turn_trxs(const fc::variant_object & trx)
+		{
+			std::map<std::string, graphene::crosschain::hd_trx> hdtxs;
+			
+			return hdtxs;
+		}
 		hd_trx crosschain_interface_emu::turn_trx(const fc::variant_object & trx) {
 			return hd_trx();
 		}
@@ -176,7 +182,10 @@ namespace graphene {
 			fc::to_variant(a, v);
 			return v.get_object();
 		}
-
+		fc::variant_object crosschain_interface_emu::create_multisig_transaction(std::string &from_account,const std::map<std::string, std::string> dest_info, std::string &symbol, std::string &memo, const std::string& prk)
+		{
+			return fc::variant_object();
+		}
 		fc::variant_object crosschain_interface_emu::create_multisig_transaction(std::string &from_account, std::string &to_account, const std::string& amount, std::string &symbol, std::string &memo, bool broadcast)
 		{
 			hd_trx a;
@@ -221,13 +230,16 @@ namespace graphene {
 		{
 			return true;
 		}
-
+		bool crosschain_interface_emu::validate_address(const std::string& addr)
+		{
+			return false;
+		}
 		bool crosschain_interface_emu::validate_signature(const std::string &account, const std::string &content, const std::string &signature)
 		{
 			return true;
 		}
 
-		bool crosschain_interface_emu::create_signature(const std::string &account, const std::string &content, std::string &signature)
+		bool crosschain_interface_emu::create_signature(const std::string &account, const std::string &content, std::string &signature, const std::string& prk)
 		{
 			return false;
 		}

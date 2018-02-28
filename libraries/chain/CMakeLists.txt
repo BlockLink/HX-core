@@ -5,7 +5,7 @@ set_source_files_properties( "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain
 
 add_dependencies( build_hardfork_hpp cat-parts )
 
-file(GLOB HEADERS "include/graphene/chain/*.hpp")
+file(GLOB HEADERS "include/graphene/chain/*.hpp" "../uvm/include/uvm/*.hpp" "../jsondiff/jsondiff-cpp/include/jsondiff/*.h")
 file(GLOB PROTOCOL_HEADERS "include/graphene/chain/protocol/*.hpp")
 
 if( GRAPHENE_DISABLE_UNITY_BUILD )
@@ -82,6 +82,8 @@ add_library( graphene_chain
              confidential_evaluator.cpp
              special_authority.cpp
              buyback.cpp
+             coldhot_transfer_evaluate.cpp
+             coldhot_withdraw.cpp
 			 guard_lock_balance_evaluator.cpp
 			 guard_refund_balance_evaluator.cpp
 			 lockbalance_evaluator.cpp
@@ -96,15 +98,26 @@ add_library( graphene_chain
 
              is_authorized_asset.cpp
 
+             contract.cpp
+             storage.cpp
+             contract_engine.cpp
+             contract_engine_builder.cpp
+             uvm_contract_engine.cpp
+             contract_evaluate.cpp
+             contract_entry.cpp
+             uvm_chain_api.cpp
+             db_contract_trx.cpp
+             native_contract.cpp
+
              ${HEADERS}
              ${PROTOCOL_HEADERS}
              "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain/hardfork.hpp"
            )
 
 add_dependencies( graphene_chain build_hardfork_hpp )
-target_link_libraries( graphene_chain fc graphene_db crosschain )
+target_link_libraries( graphene_chain fc graphene_db crosschain uvm jsondiff)
 target_include_directories( graphene_chain
-                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/include" )
+                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/../jsondiff/jsondiff-cpp/include")
 
 if(MSVC)
   set_source_files_properties( db_init.cpp db_block.cpp database.cpp block_database.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

@@ -6,7 +6,7 @@
 #include <fc/variant.hpp>
 #include <fc/variant_object.hpp>
 #include <iostream>
-
+#include <graphene/privatekey_management/private_key.hpp>
 namespace graphene {
 	namespace crosschain {
 
@@ -31,14 +31,7 @@ namespace graphene {
 
 		bool crosschain_interface_btc::open_wallet(std::string wallet_name)
 		{
-			if (_connection->get_socket().is_open())
-			{
-				return true;
-			}
-			else
-			{
-				return false;
-			}
+			return false;
 		}
 
 		void crosschain_interface_btc::close_wallet()
@@ -58,15 +51,15 @@ namespace graphene {
 
 		std::string crosschain_interface_btc::create_normal_account(std::string account_name)
 		{
-
 			std::string json_str = "{ \"jsonrpc\": \"2.0\", \
 				\"params\" : {\"chainId\":\"btc\" \
 			}, \
 				\"id\" : \"45\", \
 				\"method\" : \"Zchain.Address.Create\" \
 			}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, json_str,	_rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, json_str,	_rpc_headers);
 			std::cout << std::string(response.body.begin(), response.body.end()) << std::endl;
 			if (response.status == fc::http::reply::OK)
 			{
@@ -76,6 +69,7 @@ namespace graphene {
 			}
 			else if (response.status == fc::http::reply::BadRequest)
 				throw(fc::http::reply::BadRequest);
+			
 		}
 		
 		std::map<std::string,std::string> crosschain_interface_btc::create_multi_sig_account(std::string account_name, std::vector<std::string> addresses, uint32_t nrequired)
@@ -96,8 +90,9 @@ namespace graphene {
 
 			}
 			req_body << "]}}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			std::cout << response.status << std::endl;
 			if (response.status == fc::http::reply::OK)
 			{
@@ -133,9 +128,9 @@ namespace graphene {
 				\"method\" : \"Zchain.Trans.queryTrans\" ,\
 				\"params\" : {\"chainId\":\"btc\" ,\"trxid\": \"" << trx_id << "\"}}";
 			std::cout << req_body.str() << std::endl;
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
-			std::cout <<"dfsdfsdfsd" <<std::string(response.body.begin(), response.body.end()) << std::endl;
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end())).get_object();
@@ -152,6 +147,75 @@ namespace graphene {
 		{
 			return fc::variant_object();
 		}
+		std::map<std::string, graphene::crosschain::hd_trx> crosschain_interface_btc::turn_trxs(const fc::variant_object & trx)
+		{
+			hd_trx hdtx;
+			std::map<std::string, graphene::crosschain::hd_trx> hdtxs;
+			try {
+				auto tx = trx["trx"].get_object();
+				hdtx.asset_symbol = chain_type;
+				hdtx.trx_id = tx["hash"].as_string();
+				const std::string to_addr = tx["vout"].get_array()[0].get_object()["scriptPubKey"].get_object()["addresses"].get_array()[0].as_string();
+				const std::string from_trx_id = tx["vin"].get_array()[0].get_object()["txid"].as_string();
+				const auto index = tx["vin"].get_array()[0].get_object()["vout"].as_uint64();
+				auto from_trx = transaction_query(from_trx_id);
+				const std::string from_addr = from_trx["vout"].get_array()[index].get_object()["scriptPubKey"].get_object()["addresses"].get_array()[0].as_string();
+				hdtx.from_account = from_addr;
+				for (auto vouts : tx["vout"].get_array())
+				{
+					auto addrs = vouts.get_object()["scriptPubKey"].get_object()["addresses"].get_array();
+					for (auto addr : addrs)
+					{
+						if (addr.as_string() == from_addr)
+							continue;
+						hdtx.to_account = addr.as_string();
+						auto amount = vouts.get_object()["value"].as_double();
+						char temp[1024];
+						std::sprintf(temp, "%g", amount);
+						hdtx.amount = temp;
+						hdtxs[hdtx.to_account] = hdtx;
+
+					}
+
+				}
+
+			}
+			FC_CAPTURE_AND_RETHROW((trx));
+			return hdtxs;
+		}
+
+		fc::variant_object crosschain_interface_btc::create_multisig_transaction(std::string &from_account, const std::map<std::string, std::string> dest_info, std::string &symbol, std::string &memo, const std::string& prk)
+		{
+			std::ostringstream req_body;
+			req_body << "{ \"jsonrpc\": \"2.0\", \
+                \"id\" : \"45\", \
+				\"method\" : \"Zchain.Trans.createTrx\" ,\
+				\"params\" : {\"chainId\":\"btc\" ,\"from_addr\": \"" << from_account << "\",\"dest_info\":{";// << to_account << "\",\"amount\":" << amount << "}}";
+			for (auto iter = dest_info.begin(); iter != dest_info.end(); ++iter)
+			{
+				if (iter != dest_info.begin())
+					req_body << ",";
+				req_body << "\"" << iter->first << "\":" << iter->second;
+			}
+			req_body << "}}}";
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			if (response.status == fc::http::reply::OK)
+			{
+				auto str = std::string(response.body.begin(), response.body.end());
+				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end()));
+				std::cout << "message is :" <<std::string(response.body.begin(), response.body.end()) << std::endl;
+				auto ret = resp.get_object()["result"].get_object();
+				FC_ASSERT(ret.contains("data"));
+				return fc::variant_object();
+			}
+			else
+				FC_THROW("TODO");
+			return fc::variant_object();
+
+		}
+
 
 		fc::variant_object crosschain_interface_btc::create_multisig_transaction(std::string &from_account, std::string &to_account, const std::string& amount, std::string &symbol, std::string &memo, bool broadcast /*= true*/)
 		{
@@ -161,8 +225,9 @@ namespace graphene {
 				\"method\" : \"Zchain.Trans.createTrx\" ,\
 				\"params\" : {\"chainId\":\"btc\" ,\"from_addr\": \"" << from_account << "\",\"to_addr\":\""<<to_account <<"\",\"amount\":" <<amount <<"}}";
 			std::cout << req_body.str() << std::endl;
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto str = std::string(response.body.begin(), response.body.end());
@@ -185,8 +250,9 @@ namespace graphene {
 				\"method\" : \"Zchain.Trans.Sign\" ,\
 				\"params\" : {\"chainId\":\"btc\" ,\"addr\": \"" << sign_account << "\",\"trx_hex\":\"" << trx["hex"].as_string() << "\","<<"\"redeemScript"<<"\":"<<"\""<<redeemScript<<"\"}}";
 			std::cout << req_body.str() << std::endl;
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end())).get_object();
@@ -217,8 +283,9 @@ namespace graphene {
 				}
 			}
 			req_body << "]}}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end())).get_object();
@@ -246,6 +313,34 @@ namespace graphene {
 		{
 			return true;
 		}
+		bool crosschain_interface_btc::validate_address(const std::string& addr)
+		{
+			std::ostringstream req_body;
+			req_body << "{ \"jsonrpc\": \"2.0\", \
+                \"id\" : \"45\", \
+				\"method\" : \"Zchain.Address.validate\" ,\
+				\"params\" : {\"chainId\":\"btc\" ,\"addr\": " << "\"" << addr <<"\"}}";
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			if (response.status == fc::http::reply::OK)
+			{
+				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end()));
+				auto ret = resp.get_object();
+				if (ret.contains("result"))
+				{
+					auto result = ret["result"].get_object();
+					return result["valid"].as_bool();
+				}
+				else
+				{
+					return false;
+				}
+
+			}
+			else
+				FC_THROW(addr);
+		}
 
 		bool crosschain_interface_btc::validate_signature(const std::string &account, const std::string &content, const std::string &signature)
 		{
@@ -255,8 +350,9 @@ namespace graphene {
 				\"method\" : \"Zchain.Crypt.VerifyMessage\" ,\
 				\"params\" : {\"chainId\":\"btc\" ,\"addr\": " << "\"" << account << "\"," << "\"message\":" << "\""  \
 				<< content << "\"," << "\""<<"signature" <<"\":\""<<signature <<"\""<<"}}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end()));
@@ -276,15 +372,16 @@ namespace graphene {
 				FC_THROW(signature);
 		}
 
-		bool crosschain_interface_btc::create_signature(const std::string &account, const std::string &content, std::string &signature)
+		bool crosschain_interface_btc::create_signature(const std::string &account, const std::string &content, std::string &signature, const std::string& prk)
 		{
 			std::ostringstream req_body;
 			req_body << "{ \"jsonrpc\": \"2.0\", \
                 \"id\" : \"45\", \
 				\"method\" : \"Zchain.Crypt.Sign\" ,\
 				\"params\" : {\"chainId\":\"btc\" ,\"addr\": " <<"\""<<account<<"\"," <<"\"message\":"<<"\""<<content<<"\"" <<"}}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end()));
@@ -298,7 +395,9 @@ namespace graphene {
 			}
 			else
 				FC_THROW(signature);
+			return true;
 		}
+
 
 		graphene::crosschain::hd_trx crosschain_interface_btc::turn_trx(const fc::variant_object & trx)
 		{
@@ -326,8 +425,9 @@ namespace graphene {
                 \"id\" : \"45\", \
 				\"method\" : \"Zchain.Trans.broadcastTrx\" ,\
 				\"params\" : {\"chainId\":\"btc\" ,\"trx\": " << "\"" << trx["hex"].as_string() <<"\"" << "}}";
-				_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-				auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+				fc::http::connection conn;
+				conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+				auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 				if (response.status == fc::http::reply::OK)
 				{
 					auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end()));
@@ -337,7 +437,7 @@ namespace graphene {
 						auto hex = result["result"].get_object()["data"].as_string();
 					}
 				}
-			}FC_CAPTURE_AND_RETHROW((trx));
+			}FC_CAPTURE_AND_LOG((trx));
 		}
 
 		std::vector<fc::variant_object> crosschain_interface_btc::query_account_balance(const std::string &account)
@@ -354,8 +454,9 @@ namespace graphene {
                 \"id\" : \"45\", \
 				\"method\" : \"Zchain.Transaction.Deposit.History\" ,\
 				\"params\" : {\"chainId\":\""<< local_symbol<<"\",\"account\": \"\" ,\"limit\": 0 ,\"blockNum\": "  << start_block << "}}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			
 			if (response.status == fc::http::reply::OK)
 			{
@@ -372,6 +473,31 @@ namespace graphene {
 					}
 				}
 			}
+			std::ostringstream req_body1;
+			req_body1 << "{ \"jsonrpc\": \"2.0\", \
+                \"id\" : \"45\", \
+				\"method\" : \"Zchain.Transaction.Withdraw.History\" ,\
+				\"params\" : {\"chainId\":\"" << local_symbol << "\",\"account\": \"\" ,\"limit\": 0 ,\"blockNum\": " << start_block << "}}";
+			fc::http::connection conn1;
+			conn1.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response1 = conn1.request(_rpc_method, _rpc_url, req_body1.str(), _rpc_headers);
+			std::cout << req_body1.str() << std::endl;
+			if (response1.status == fc::http::reply::OK)
+			{
+				auto resp = fc::json::from_string(std::string(response1.body.begin(), response1.body.end()));
+				//std::cout << std::string(response.body.begin(), response.body.end());
+				auto result = resp.get_object();
+				if (result.contains("result"))
+				{
+					end_block_num = std::max(uint32_t(result["result"].get_object()["blockNum"].as_uint64()),end_block_num);
+					for (auto one_data : result["result"].get_object()["data"].get_array())
+					{
+						//std::cout << one_data.get_object()["txid"].as_string();
+						return_value.push_back(one_data.get_object());
+					}
+				}
+			}
+
 
 			return return_value;
 		}
@@ -381,8 +507,9 @@ namespace graphene {
 			std::ostringstream req_body;
 			req_body << "{ \"id\": 1, \"method\": \"dumpprivkey\", \"params\": [\""
 				<< account << "\"]}";
-			_connection->connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
-			auto response = _connection->request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
+			fc::http::connection conn;
+			conn.connect_to(fc::ip::endpoint(fc::ip::address(_config["ip"].as_string()), _config["port"].as_uint64()));
+			auto response = conn.request(_rpc_method, _rpc_url, req_body.str(), _rpc_headers);
 			if (response.status == fc::http::reply::OK)
 			{
 				auto resp = fc::json::from_string(std::string(response.body.begin(), response.body.end())).as<fc::mutable_variant_object>();

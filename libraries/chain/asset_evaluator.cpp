@@ -30,7 +30,7 @@
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/is_authorized_asset.hpp>
 #include <graphene/chain/committee_member_object.hpp>
-
+#include <graphene/chain/balance_object.hpp>
 #include <functional>
 
 namespace graphene { namespace chain {
@@ -642,5 +642,71 @@ void_result asset_real_create_evaluator::do_apply(const asset_real_create_operat
 	}FC_CAPTURE_AND_RETHROW((o))
 }
 
+void_result gurantee_create_evaluator::do_evaluate(const gurantee_create_operation& o)
+{
+	try {
+		const auto& _db = db();
+		const auto& gran_index =_db.get_index_type<guarantee_index>().indices();
+		const auto& range = gran_index.get<by_symbol_owner>().equal_range(boost::make_tuple(o.owner_addr,o.symbol));
+		share_type frozen = 0;
+		std::for_each(range.first, range.second, [&](const guarantee_object& obj) {
+			if (!obj.finished)
+			{
+				asset left = obj.asset_orign - obj.asset_finished * price(obj.asset_orign, obj.asset_target);
+				frozen += left.amount;
+			}
+				
+		});
+		//we need to check if this  is equal to the frozen assets
+		const auto& balances = _db.get_index_type<balance_index>().indices().get<by_owner>();
+		const auto balance_obj = balances.find(boost::make_tuple(o.owner_addr, o.asset_origin.asset_id));
+		FC_ASSERT(balance_obj != balances.end());
+		FC_ASSERT(balance_obj->balance >= o.asset_origin);
+		FC_ASSERT(balance_obj->frozen == frozen);
+	}FC_CAPTURE_AND_RETHROW((o))
+}
+
+void_result gurantee_create_evaluator::do_apply(const gurantee_create_operation& o)
+{
+	try {
+		auto& _db = db();
+		_db.adjust_balance(o.owner_addr,-o.asset_origin,true);
+		
+		_db.create<guarantee_object>([&](guarantee_object& a) {
+			a.asset_finished = asset(0, o.asset_target.asset_id);
+			a.asset_orign = o.asset_origin;
+			a.asset_target = o.asset_target;
+			a.chain_type = o.symbol;
+			a.owner_addr = o.owner_addr;
+			a.time = o.time;
+			a.finished = false;
+		});
+
+	}FC_CAPTURE_AND_RETHROW((o))
+}
+
+void_result gurantee_cancel_evaluator::do_evaluate(const gurantee_cancel_operation& o)
+{
+	try {
+		const auto& _db = db();
+		const auto gurantee_obj = _db.get(o.cancel_guarantee_id);
+		FC_ASSERT(gurantee_obj.owner_addr == o.owner_addr);
+		FC_ASSERT(gurantee_obj.finished == false);
+	}FC_CAPTURE_AND_RETHROW((o))
+}
+
+void_result gurantee_cancel_evaluator::do_apply(const gurantee_cancel_operation& o)
+{
+	try {
+		auto& _db = db();
+		auto& gurantee_obj = _db.get(o.cancel_guarantee_id);
+		_db.modify(gurantee_obj, [&](guarantee_object& obj) {
+			obj.finished = true;
+		});
+		asset left = gurantee_obj.asset_orign - gurantee_obj.asset_finished * price(gurantee_obj.asset_orign, gurantee_obj.asset_target);
+		_db.cancel_frozen(gurantee_obj.owner_addr,left);
+	}FC_CAPTURE_AND_RETHROW((o))
+
+}
 
 } } // graphene::chain

@@ -16,7 +16,8 @@ namespace graphene {
 			withdraw_sign_trx = 2,
 			withdraw_combine_trx_create = 3,
 			withdraw_transaction_confirm = 4,
-			withdraw_transaction_fail = 5
+			withdraw_transaction_fail = 5,
+			withdraw_canceled =6
 		};
 		enum acquired_trx_state {
 			acquired_trx_uncreate = 0,
@@ -82,9 +83,11 @@ namespace graphene {
 
 			transaction_id_type relate_transaction_id;
 			transaction_id_type transaction_id;
+			vector<transaction_id_type> all_related_origin_transaction_ids;
 			signed_transaction real_transaction;
 			uint64_t op_type;
 			transaction_stata trx_state;
+			string crosschain_trx_id;
 			crosschain_trx_object() {}
 		};
 		struct by_relate_trx_id;
@@ -93,6 +96,7 @@ namespace graphene {
 		struct by_transaction_stata;
 		struct by_trx_relate_type_stata;
 		struct by_trx_type_state;
+		struct by_original_id_optype;
 		using crosschain_multi_index_type = multi_index_container <
 			crosschain_trx_object,
 			indexed_by <
@@ -117,10 +121,18 @@ namespace graphene {
 			crosschain_trx_object,
 			member<crosschain_trx_object, transaction_id_type, &crosschain_trx_object::relate_transaction_id>,
 			member<crosschain_trx_object, transaction_stata, &crosschain_trx_object::trx_state>
-			>,
-			composite_key_compare<
+			>//,
+			/*composite_key_compare<
 			std::less< transaction_id_type >,
 			std::less<transaction_stata>
+			>*/
+			>,
+			ordered_non_unique<
+			tag<by_original_id_optype>,
+			composite_key<
+			crosschain_trx_object,
+			member<crosschain_trx_object, string, &crosschain_trx_object::crosschain_trx_id>,
+			member<crosschain_trx_object, uint64_t, &crosschain_trx_object::op_type>
 			>
 			>,
 			ordered_non_unique<
@@ -151,6 +163,8 @@ FC_REFLECT_DERIVED(graphene::chain::crosschain_trx_object,(graphene::db::object)
 	(relate_transaction_id)
 	(transaction_id)
 	(real_transaction)
+	(crosschain_trx_id)
+	(all_related_origin_transaction_ids)
 	(op_type)
 	(trx_state)
 )

@@ -71,7 +71,11 @@ int main(int argc, char** argv)
 // 	std::string password = "123456";
 // 	auto checksum = fc::sha512::hash(password.c_str(), password.size());
 // 
+<<<<<<< HEAD
 // 	for (auto i = 0; i < 10; i++)
+=======
+// 	for (auto i = 5; i < 10; i++)
+>>>>>>> master
 // 	{
 // 		printf("current index: %d\n", i + 1);
 // 
@@ -103,9 +107,6 @@ int main(int argc, char** argv)
 // 	auto max_id = db_priv.fetch_current_max_id();
 // 	printf("%d\n", max_id);
 
-	
-
-
 
 // 	std::string script = "dup hash160 [b5843e180a4360bdbf4bcd9cdd37c311bb9fcb64] equalverify checksig";
 // 	std::string raw_trx = "02000000019463a8d3eb08b33ea75526510a2f88b63deb599021c92f1d5f78dce888262ab10000000000ffffffff01605af405000000001976a914f04d7bc2c9c2ce2ccefd9ebcd24c60a73caa1df588ac00000000";
@@ -119,6 +120,8 @@ int main(int argc, char** argv)
 // 
 // 	printf("wif key is %s\n", priv.get_wif_key().c_str());
 // 	printf("address is %s\n", priv.get_address().c_str());
+	
+
 	
 
 

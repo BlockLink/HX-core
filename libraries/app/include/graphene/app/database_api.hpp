@@ -43,8 +43,10 @@
 #include <graphene/chain/lockbalance_object.hpp>
 #include <graphene/chain/guard_lock_balance_object.hpp>
 #include <graphene/chain/crosschain_trx_object.hpp>
+#include <graphene/chain/coldhot_transfer_object.hpp>
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/chain/transaction_object.hpp>
+#include <graphene/chain/contract_object.hpp>
 #include <fc/api.hpp>
 #include <fc/optional.hpp>
 #include <fc/variant_object.hpp>
@@ -215,7 +217,7 @@ class database_api
        * @brief Retrieve the current @ref dynamic_global_property_object
        */
       dynamic_global_property_object get_dynamic_global_properties()const;
-
+	  void set_guarantee_id(guarantee_object_id_type id);
       //////////
       // Keys //
       //////////
@@ -602,7 +604,18 @@ class database_api
 	  vector<guard_lock_balance_object> get_guard_asset_lock_balance(const asset_id_type& id)const;
 
 	  vector<crosschain_trx_object> get_crosschain_transaction(const transaction_stata& crosschain_trx_state, const transaction_id_type& id)const;
+	  vector<coldhot_transfer_object> get_coldhot_transaction(const coldhot_trx_state& coldhot_tx_state, const transaction_id_type& id)const;
 	  optional<multisig_account_pair_object> lookup_multisig_account_pair(const multisig_account_pair_id_type& id) const;
+
+
+      //contract 
+      contract_object get_contract_info(const string& contract_address)const;
+	  contract_object get_contract_info_by_name(const string& contract_name)const;
+      vector<asset> get_contract_balance(const address& contract_address) const;
+
+	  vector<optional<guarantee_object>> list_guarantee_object(const string& chain_type) const;
+	  optional<guarantee_object> get_gurantee_object(const guarantee_object_id_type id) const;
+
    private:
       std::shared_ptr< database_api_impl > my;
 };
@@ -638,7 +651,7 @@ FC_API(graphene::app::database_api,
 	(get_config)
 	(get_chain_id)
 	(get_dynamic_global_properties)
-
+	(set_guarantee_id)
 	// Keys
 	(get_key_references)
 	(is_public_key_registered)
@@ -720,7 +733,15 @@ FC_API(graphene::app::database_api,
 	(lookup_multisig_asset)
 	(get_binding_account)
 	(get_crosschain_transaction)
+		(get_coldhot_transaction)
 	(get_multisig_address_obj)
 	(get_multisig_account_pair)
 	(lookup_multisig_account_pair)
+
+    //contract
+    (get_contract_info)
+	(get_contract_info_by_name)
+    (get_contract_balance)
+	(get_gurantee_object)
+	(list_guarantee_object)
 );

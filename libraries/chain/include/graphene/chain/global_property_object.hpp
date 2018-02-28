@@ -28,6 +28,7 @@
 #include <graphene/chain/protocol/types.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/db/object.hpp>
+#include <graphene/chain/lockbalance_object.hpp>
 
 namespace graphene { namespace chain {
 
@@ -52,7 +53,6 @@ namespace graphene { namespace chain {
          vector<guard_member_id_type>   active_committee_members; // updated once per maintenance interval
          flat_set<miner_id_type>          active_witnesses; // updated once per maintenance interval
 		 vector<guard_member_id_type> pledge_insufficient_committee_members; // updated once per maintenance interval 
-		 
          // n.b. witness scheduling is done by witness_schedule object
    };
 
@@ -80,6 +80,9 @@ namespace graphene { namespace chain {
          share_type        miner_budget;
          uint32_t          accounts_registered_this_interval = 0;
 		 optional<SecretHashType>      current_random_seed;
+		 std::map<miner_id_type,std::vector<lockbalance_object>> current_round_lockbalance_cache;
+		 std::map<asset_id_type, price_feed>  current_price_feed;
+
          /**
           *  Every time a block is missed this increases by
           *  RECENTLY_MISSED_COUNT_INCREMENT,
@@ -142,6 +145,8 @@ FC_REFLECT_DERIVED( graphene::chain::dynamic_global_property_object, (graphene::
                     (recent_slots_filled)
                     (dynamic_flags)
                     (last_irreversible_block_num)
+					(current_round_lockbalance_cache)
+					(current_price_feed)
                   )
 
 FC_REFLECT_DERIVED( graphene::chain::global_property_object, (graphene::db::object),

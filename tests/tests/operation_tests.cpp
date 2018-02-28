@@ -44,6 +44,7 @@
 #include <graphene/chain/transaction_object.hpp>
 #include "../common/database_fixture.hpp"
 #include <fc/network/url.hpp>
+#include <graphene/privatekey_management/private_key.hpp>
 using namespace graphene::chain;
 using namespace graphene::chain::test;
 
@@ -650,10 +651,13 @@ BOOST_FIXTURE_TEST_CASE(account_bind_operation_test,database_fixture)
 		auto crosschain = graphene::crosschain::crosschain_manager::get_instance().get_crosschain_handle("BTC"); 
 		fc::variant_object config = fc::json::from_string("{\"ip\":\"192.168.1.123\",\"port\":80}" ).get_object();
 		crosschain->initialize_config(config);
-		string tunnel_account  = crosschain->create_normal_account("test");
+		auto prk = graphene::privatekey_management::crosschain_management::get_instance().get_crosschain_prk(op.crosschain_type);
+		auto wif_key = crosschain->create_normal_account("test");
+		auto pkey = prk->import_private_key(wif_key);
+		string tunnel_account = prk->get_address(*pkey);
 		op.tunnel_address = tunnel_account;
 
-		crosschain->create_signature(tunnel_account, tunnel_account, op.tunnel_signature);
+		crosschain->create_signature(tunnel_account, tunnel_account, op.tunnel_signature,wif_key);
 		signed_transaction trx;
 		trx.operations.emplace_back(op);
 		set_expiration(db, trx);
@@ -737,7 +741,7 @@ BOOST_AUTO_TEST_CASE(guard_sign_crosschain_transaction_test)
 		//string sign_string = "Hello";
 		const guard_member_object& guard = *db.get_index_type<guard_member_index>().indices().get<by_account>().find(nathan.get_id());
 		crosschain_withdraw_with_sign_operation trx_op;
-		trx_op.ccw_trx_id = sign_op.ccw_trx_id;
+		trx_op.ccw_trx_id = sign_op.ccw_trx_ids[0];
 		trx_op.asset_symbol = sign_op.asset_symbol;
 		trx_op.ccw_trx_signature = sign_string;
 		trx_op.withdraw_source_trx = sign_op.withdraw_source_trx;
@@ -776,7 +780,7 @@ BOOST_AUTO_TEST_CASE(account_unbind_operation_test)
 		auto crosschain = graphene::crosschain::crosschain_manager::get_instance().get_crosschain_handle("BTC");
 
 		op.tunnel_address = iter->get_tunnel_account();
-		crosschain->create_signature(op.tunnel_address, op.tunnel_address, op.tunnel_signature);
+		crosschain->create_signature(op.tunnel_address, op.tunnel_address, op.tunnel_signature,"");
 		signed_transaction trx;
 		trx.operations.emplace_back(op);
 		set_expiration(db, trx);
@@ -880,7 +884,7 @@ BOOST_AUTO_TEST_CASE(asset_transfer_from_cold_to_hot_operation_test)
 		
 		fc::variant_object config = fc::json::from_string("{\"ip\":\"192.168.1.123\",\"port\":5000}").get_object();
 		inface->initialize_config(config);
-		auto trx = inface->create_multisig_transaction(string(cold_addr), string(hot_addr), "1", string("BTC"), string(""), true);
+		auto trx = inface->create_multisig_transaction(string(cold_addr), string(hot_addr), "1", string("BTC"), string(""), "");
 		inface->initialize_config(config);
 		auto link_trx = inface->turn_trx(trx);
 		auto private_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("guard_test")));

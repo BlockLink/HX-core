@@ -291,6 +291,7 @@ signed_block database::generate_block(
    )
 { try {
    signed_block result;
+   skip |= check_gas_price;
    detail::with_skip_flags( *this, skip, [&]()
    {
       result = _generate_block( when, witness_id, block_signing_private_key );
@@ -314,13 +315,12 @@ signed_block database::_generate_block(
    const auto& witness_obj = witness_id(*this);
    const auto& account_obj = witness_obj.miner_account(*this);
 
-   if( !(skip & skip_miner_signature) )
+ if( !(skip & skip_miner_signature) )
       FC_ASSERT( witness_obj.signing_key == block_signing_private_key.get_public_key() );
 
    static const size_t max_block_header_size = fc::raw::pack_size( signed_block_header() ) + 4;
    auto maximum_block_size = get_global_properties().parameters.maximum_block_size;
    size_t total_block_size = max_block_header_size;
-
    signed_block pending_block;
    //
    // The following code throws away existing pending_tx_session and
@@ -335,7 +335,6 @@ signed_block database::_generate_block(
    //
    _pending_tx_session.reset();
    _pending_tx_session = _undo_db.start_undo_session();
-
    uint64_t postponed_tx_count = 0;
    // pop pending state (reset to head block state)
    for( const processed_transaction& tx : _pending_tx )
@@ -352,6 +351,7 @@ signed_block database::_generate_block(
       try
       {
          auto temp_session = _undo_db.start_undo_session();
+         
          processed_transaction ptx = _apply_transaction( tx );
          temp_session.merge();
 
@@ -374,6 +374,7 @@ signed_block database::_generate_block(
    }
 
    _pending_tx_session.reset();
+
 
    // We have temporarily broken the invariant that
    // _pending_tx_session is the result of applying _pending_tx, as
@@ -528,7 +529,7 @@ void database::_apply_block( const signed_block& next_block )
    uint32_t next_block_num = next_block.block_num();
    uint32_t skip = get_node_properties().skip_flags;
    _applied_ops.clear();
-
+   reset_current_collected_fee();
    FC_ASSERT( (skip & skip_merkle_check) || next_block.transaction_merkle_root == next_block.calculate_merkle_root(), "", ("next_block.transaction_merkle_root",next_block.transaction_merkle_root)("calc",next_block.calculate_merkle_root())("next_block",next_block)("id",next_block.id()) );
 
    const miner_object& signing_witness = validate_block_header(skip, next_block);
@@ -547,7 +548,8 @@ void database::_apply_block( const signed_block& next_block )
        * for transactions when validating broadcast transactions or
        * when building a block.
        */
-      apply_transaction( trx, skip );
+	  const auto& apply_trx_res = apply_transaction(trx, skip);
+	  FC_ASSERT(apply_trx_res.operation_results == trx.operation_results, "operation apply result not same with result in block");
       ++_current_trx_in_block;
    }
    
@@ -573,6 +575,7 @@ void database::_apply_block( const signed_block& next_block )
    // to be called for header validation?
    update_maintenance_flag( maint_needed );
    
+   pay_miner(next_block.miner);
    update_miner_schedule();
    update_witness_random_seed(next_block.previous_secret);
    if( !_node_property_object.debug_updates.empty() )

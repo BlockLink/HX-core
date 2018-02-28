@@ -107,6 +107,7 @@ namespace graphene { namespace privatekey_management {
 	}
 
 
+
 	std::string  btc_privatekey::get_wif_key()
 	{	
 		FC_ASSERT( is_empty() == false, "private key is empty!" );
@@ -123,6 +124,7 @@ namespace graphene { namespace privatekey_management {
 		digest = fc::sha256::hash(digest);
 		memcpy(data + size_of_data_to_hash, (char*)&digest, size_of_hash_bytes);
 		return fc::to_base58(data, sizeof(data));
+	
 	}
 
     std::string   btc_privatekey::get_address()

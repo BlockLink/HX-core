@@ -64,7 +64,21 @@ string database::to_pretty_string( const asset& a )const
    return a.asset_id(*this).amount_to_pretty_string(a.amount);
 }
 
-void database::adjust_balance(address addr, asset delta)
+void database::adjust_guarantee(const guarantee_object_id_type id, const asset& target_asset)
+{
+	try {
+		auto& obj = get(id);
+		modify(obj, [&target_asset](guarantee_object& b) {
+			FC_ASSERT(b.finished == false,"guarantee order has been finished");
+			FC_ASSERT(b.asset_finished + target_asset <= b.asset_target,"balance of guarantee order is not enough");
+			b.asset_finished += target_asset;
+			if (b.asset_finished == b.asset_target)
+				b.finished = true;
+		});
+	}FC_CAPTURE_AND_RETHROW((id)(target_asset))
+}
+
+void database::adjust_balance(address addr, asset delta, bool freeze )
 {
 	try {
 		if (delta.amount == 0)
@@ -82,20 +96,50 @@ void database::adjust_balance(address addr, asset delta)
 				b.owner = addr;
 				b.balance = delta;
 				b.last_claim_date = now;
+				b.frozen = 0;
 			});
 		}
 		else
 		{
 			if (delta.amount < 0)
 				FC_ASSERT(itr->balance >= -delta, "Insufficient Balance: ${a}'s balance of ${b} is less than required ${r}", ("a", addr)("b", to_pretty_string(itr->balance))("r", to_pretty_string(-delta)));
-			modify(*itr, [delta,now](balance_object& b) {
-				b.adjust_balance(delta,now);
+			modify(*itr, [delta,now,freeze](balance_object& b) {
+				b.adjust_balance(delta,now,freeze);
 			});
 		
 		}
 		
 
+	}FC_CAPTURE_AND_RETHROW((addr)(delta)(freeze))
+}
+
+void database::adjust_frozen(address addr, asset delta)
+{
+	try {
+		if (delta.amount == 0)
+			return;
+		auto& by_owner_idx = get_index_type<balance_index>().indices().get<by_owner>();
+		auto itr = by_owner_idx.find(boost::make_tuple(addr, delta.asset_id));
+		FC_ASSERT(itr != by_owner_idx.end(), "address has no this asset.");
+		if (delta.amount < 0)
+			FC_ASSERT(itr->frozen >= -delta.amount, "Insufficient Balance: ${a}'s frozen of ${b} is less than required ${r}", ("a", addr)("b", itr->frozen)("r", to_pretty_string(-delta)));
+		modify(*itr, [delta](balance_object& b) {
+			b.adjust_frozen(delta);
+		});
 	}FC_CAPTURE_AND_RETHROW((addr)(delta))
+}
+
+void database::cancel_frozen(address addr, asset delta)
+{
+	try {
+		auto& by_owner_idx = get_index_type<balance_index>().indices().get<by_owner>();
+		auto itr = by_owner_idx.find(boost::make_tuple(addr, delta.asset_id));
+		FC_ASSERT(itr != by_owner_idx.end(), "address has no this asset.");
+		modify(*itr, [delta](balance_object& b) {
+			b.balance += delta;
+			b.frozen -= delta.amount ;
+		});
+	}FC_CAPTURE_AND_RETHROW((addr))
 }
 
 void database::adjust_balance(account_id_type account, asset delta )

@@ -9,6 +9,8 @@
 #include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
+#include <graphene/chain/contract.hpp>
+#include <graphene/chain/native_contract.hpp>
 
 using namespace fc;
 using namespace graphene::chain;
@@ -100,12 +102,19 @@ struct get_impacted_account_visitor
    void operator()(const crosschain_withdraw_with_sign_operation& op) {}
    void operator()(const crosschain_withdraw_combine_sign_operation& op) {}
    void operator()(const crosschain_withdraw_result_operation& op) {}
+   void operator()(const coldhot_transfer_operation& op) {}
+   void operator()(const coldhot_transfer_without_sign_operation& op) {}
+   void operator()(const coldhot_transfer_with_sign_operation& op) {}
+   void operator()(const coldhot_transfer_combine_sign_operation& op) {}
+   void operator()(const coldhot_transfer_result_operation& op) {}
    void operator()(const guard_update_multi_account_operation& op) {}
    void operator()(const miner_generate_multi_asset_operation& op) {}
    void operator() (const miner_merge_signatures_operation& op) {}
    void operator() (const asset_transfer_from_cold_to_hot_operation& op) {}
    void operator()(const guard_refund_balance_operation& op) {}
    void operator()(const asset_real_create_operation& op) {}
+   void operator()(const gurantee_create_operation& op) {}
+   void operator()(const gurantee_cancel_operation& op) {}
    void operator()( const miner_create_operation& op )
    {
       _impacted.insert( op.miner_account );
@@ -212,6 +221,12 @@ struct get_impacted_account_visitor
    {
       _impacted.insert( op.account_id );
    }
+   void operator()(const contract_register_operation& op) {}
+   void operator()(const contract_upgrade_operation& op) {}
+   void operator()(const native_contract_register_operation& op) {}
+   void operator()(const contract_invoke_operation& op) {}
+   void operator()(const storage_operation& op) {}
+   void operator()(const transfer_contract_operation& op) {}
 
 };
 
