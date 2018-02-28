@@ -53,7 +53,7 @@ if ( MSVC )
     # autoconf won't work here, hard code the defines
     set( SECP256K1_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/secp256k1-zkp" )
 
-    file( GLOB SECP256K1_SOURCES "${SECP256K1_DIR}/src/secp256k1.c" )
+    file( GLOB_RECURSE SECP256K1_SOURCES "${SECP256K1_DIR}/src/secp256k1.c")
     add_library( secp256k1 ${SECP256K1_SOURCES} )
 
     target_include_directories( secp256k1 PRIVATE "${SECP256K1_DIR}" PUBLIC "${SECP256K1_DIR}/include" )
@@ -63,7 +63,8 @@ if ( MSVC )
         USE_FIELD_INV_BUILTIN
         USE_NUM_NONE
         USE_SCALAR_8X32
-        USE_SCALAR_INV_BUILTIN )
+        USE_SCALAR_INV_BUILTIN 
+		ENABLE_MODULE_RECOVERY)
     set_target_properties( secp256k1 PROPERTIES COMPILE_DEFINITIONS "${SECP256K1_BUILD_DEFINES}" LINKER_LANGUAGE C )
 else ( MSVC )
     include(ExternalProject)

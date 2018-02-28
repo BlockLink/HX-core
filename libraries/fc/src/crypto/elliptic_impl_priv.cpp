@@ -70,9 +70,13 @@ namespace fc { namespace ecc {
     public_key private_key::get_public_key()const
     {
        FC_ASSERT( my->_key != empty_priv );
+
+	   secp256k1_pubkey pub_key;
+	   FC_ASSERT(secp256k1_ec_pubkey_create(detail::_get_context(), &pub_key, (unsigned char*)my->_key.data()));
+
        public_key_data pub;
-       unsigned int pk_len;
-       FC_ASSERT( secp256k1_ec_pubkey_create( detail::_get_context(), (unsigned char*) pub.begin(), (int*) &pk_len, (unsigned char*) my->_key.data(), 1 ) );
+       size_t pk_len = pub.size();
+       secp256k1_ec_pubkey_serialize(detail::_get_context(), (unsigned char*)pub.begin(), &pk_len, &pub_key, SECP256K1_EC_COMPRESSED);
        FC_ASSERT( pk_len == pub.size() );
        return public_key(pub);
     }
@@ -82,7 +86,7 @@ namespace fc { namespace ecc {
                                         const void *data ) {
         unsigned int* extra = (unsigned int*) data;
         (*extra)++;
-        return secp256k1_nonce_function_default( nonce32, msg32, key32, *extra, nullptr );
+        return secp256k1_nonce_function_default( nonce32, msg32, key32, NULL , nullptr, *extra);
     }
 
     compact_signature private_key::sign_compact( const fc::sha256& digest, bool require_canonical )const
@@ -93,7 +97,7 @@ namespace fc { namespace ecc {
         unsigned int counter = 0;
         do
         {
-            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (unsigned char*) result.begin() + 1, (unsigned char*) my->_key.data(), extended_nonce_function, &counter, &recid ));
+            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (secp256k1_ecdsa_signature*) result.begin() + 1, (unsigned char*) my->_key.data(), NULL, &counter, &recid ));
         } while( require_canonical && !public_key::is_canonical( result ) );
         result.begin()[0] = 27 + 4 + recid;
         return result;
