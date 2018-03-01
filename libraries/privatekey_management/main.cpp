@@ -107,20 +107,19 @@ int main(int argc, char** argv)
 
 	
 
-
-
+	btc_privatekey priv;
+	printf("wif key is %s\n", priv.get_wif_key().c_str());
+	printf("address is %s\n", priv.get_address().c_str());
+// 
 // 	std::string script = "dup hash160 [b5843e180a4360bdbf4bcd9cdd37c311bb9fcb64] equalverify checksig";
 // 	std::string raw_trx = "02000000019463a8d3eb08b33ea75526510a2f88b63deb599021c92f1d5f78dce888262ab10000000000ffffffff01605af405000000001976a914f04d7bc2c9c2ce2ccefd9ebcd24c60a73caa1df588ac00000000";
-// 
-// 	btc_privatekey priv;
-// 	
 // 	priv.sign_trx(script, raw_trx);
 
+	std::string msg = "Who is John Galt?";
+	priv.sign_message(msg);
 
-// 	btc_privatekey priv;
-// 
-// 	printf("wif key is %s\n", priv.get_wif_key().c_str());
-// 	printf("address is %s\n", priv.get_address().c_str());
+
+
 	
 // 
 // 	btc_privatekey priv;
