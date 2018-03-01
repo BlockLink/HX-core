@@ -10,11 +10,13 @@
 #include <graphene/privatekey_management/private_key.hpp>
 #include <graphene/privatekey_management/database_privatekey.hpp>
 #include "fc/crypto/base58.hpp"
-
+#include <bitcoin/bitcoin.hpp>
 
 #include <string> 
 #include <vector> 
 #include <iostream> 
+
+
 
 // 
 // std::string key_to_compressed_wif(const fc::sha256& secret)
@@ -71,11 +73,8 @@ int main(int argc, char** argv)
 // 	std::string password = "123456";
 // 	auto checksum = fc::sha512::hash(password.c_str(), password.size());
 // 
-<<<<<<< HEAD
+
 // 	for (auto i = 0; i < 10; i++)
-=======
-// 	for (auto i = 5; i < 10; i++)
->>>>>>> master
 // 	{
 // 		printf("current index: %d\n", i + 1);
 // 
@@ -108,21 +107,42 @@ int main(int argc, char** argv)
 // 	printf("%d\n", max_id);
 
 
+	btc_privatekey priv;
+	printf("wif key is %s\n", priv.get_wif_key().c_str());
+	printf("address is %s\n", priv.get_address().c_str());
+// 
 // 	std::string script = "dup hash160 [b5843e180a4360bdbf4bcd9cdd37c311bb9fcb64] equalverify checksig";
 // 	std::string raw_trx = "02000000019463a8d3eb08b33ea75526510a2f88b63deb599021c92f1d5f78dce888262ab10000000000ffffffff01605af405000000001976a914f04d7bc2c9c2ce2ccefd9ebcd24c60a73caa1df588ac00000000";
-// 
-// 	btc_privatekey priv;
-// 	
 // 	priv.sign_trx(script, raw_trx);
 
+	std::string msg = "Who is John Galt?";
+	priv.sign_message(msg);
 
-// 	btc_privatekey priv;
+
+
+	
 // 
-// 	printf("wif key is %s\n", priv.get_wif_key().c_str());
-// 	printf("address is %s\n", priv.get_address().c_str());
-	
-
-	
+// 	btc_privatekey priv;
+// 	std::string wif = priv.get_wif_key();
+// 	printf("the wif is %s\n", wif.c_str());
+// 
+// 	libbitcoin::wallet::ec_private libbitcoin_priv(wif);
+// 	libbitcoin::ec_secret secret = libbitcoin_priv.secret();
+// 
+// 	std::string hex_string = "394fcb53c3897424646f31361eedb6b0c159cbe2e72415b61a0cc776d8abf446";
+// 	libbitcoin::data_chunk  data;
+// 	libbitcoin::decode_base16(data, hex_string);
+// 	printf("the size is %d\n", data.size());
+// 	libbitcoin::hash_digest  hash;
+// 	std::copy(data.begin(), data.end(), hash.begin());
+// 
+// 	libbitcoin::ec_signature  result;
+// 
+// 	libbitcoin::sign(result, secret, hash);
+// 	printf("the result is %s\n", libbitcoin::encode_base16(result).c_str());
+// 
+// 	libbitcoin::der_signature out;
+// 	printf("the result is %s\n", libbitcoin::encode_base16(out).c_str());
 
 
 	getchar();

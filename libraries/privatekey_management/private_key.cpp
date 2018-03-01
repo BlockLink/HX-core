@@ -41,12 +41,8 @@ namespace graphene { namespace privatekey_management {
 	{
 		//get endorsement
 		libbitcoin::endorsement out;
-		libbitcoin::wallet::ec_private libbitcoin_priv("5KiiUHdAaDFnJDN42QggCAKxvQ1bEyoQohWdX5zSpTeJPLPE6Dk");
-// 		printf("priv hex string is %s\n", libbitcoin::encode_base16( libbitcoin_priv.secret()).c_str());
-// 		std::string priv_hex_string = "fabe2beb53866e0f9d3568577810034b26ad965bc57f0a833305442a1272aba9";
-// 		libbitcoin::ec_secret priv_secret;
-// 		libbitcoin::decode_base16(priv_secret, priv_hex_string);
-// 		libbitcoin::wallet::ec_private libbitcoin_priv(priv_secret);
+// 		libbitcoin::wallet::ec_private libbitcoin_priv(get_wif_key());
+		libbitcoin::wallet::ec_private libbitcoin_priv("L5d83SNdFb6EvyZvMDY7zGAhpgZc8hhr57onBo2YxUbdja8PZ7WL");
 		libbitcoin::chain::script   libbitcoin_script;
 		libbitcoin_script.from_string(script);
 		libbitcoin::chain::transaction  trx;
@@ -56,17 +52,17 @@ namespace graphene { namespace privatekey_management {
 
 		auto result = libbitcoin::chain::script::create_endorsement(out, libbitcoin_priv.secret(), libbitcoin_script, trx, index, hash_type);
 		assert( result == true);
-		printf("endorsement is %s\n", libbitcoin::encode_base16(out).c_str());
+// 		printf("endorsement is %s\n", libbitcoin::encode_base16(out).c_str());
 
 
 		//get public hex
 		libbitcoin::wallet::ec_public libbitcoin_pub = libbitcoin_priv.to_public();
 		std::string pub_hex = libbitcoin_pub.encoded();
-		printf("public hex is %s\n", pub_hex.c_str());
+// 		printf("public hex is %s\n", pub_hex.c_str());
 
 		//get signed raw-trx
 		std::string endorsment_script = "[" + libbitcoin::encode_base16(out) + "]" + " [" + pub_hex + "] ";
-		printf("endorsement script is %s\n", endorsment_script.c_str());
+// 		printf("endorsement script is %s\n", endorsment_script.c_str());
 		libbitcoin_script.from_string(endorsment_script);
 
 		trx.from_data(libbitcoin::config::base16(raw_trx));
@@ -74,7 +70,7 @@ namespace graphene { namespace privatekey_management {
 		trx.inputs()[index].set_script(libbitcoin_script);	    
 		std::string signed_trx = libbitcoin::encode_base16(trx.to_data());
 
-		printf("signed trx is %s\n", signed_trx.c_str());
+// 		printf("signed trx is %s\n", signed_trx.c_str());
 
 
 
@@ -84,17 +80,19 @@ namespace graphene { namespace privatekey_management {
 
 	std::string crosschain_privatekey_base::sign_message(const std::string& msg)
 	{
-		/*auto wif = get_wif_key(_key);
 
-		//sign msg
-		std::string cmd = "E:\\blocklink_project\\blocklink-core\\libraries\\privatekey_management\\pm.exe message-sign";
-		cmd += " " + wif + " " + "\"" + msg + "\"";
-// 		printf("cmd string is %s\n", cmd.c_str());
-		auto signedmsg = exec(cmd.c_str());
-		printf("signed message: %s\n", signedmsg.c_str());
 
-		return signedmsg;*/
-		return "";
+		libbitcoin::wallet::message_signature sign;
+
+		// 		libbitcoin::wallet::ec_private libbitcoin_priv(get_wif_key());
+		libbitcoin::wallet::ec_private libbitcoin_priv("L5d83SNdFb6EvyZvMDY7zGAhpgZc8hhr57onBo2YxUbdja8PZ7WL");
+		libbitcoin::data_chunk  data(msg.begin(), msg.end());
+
+		libbitcoin::wallet::sign_message(sign, data, libbitcoin_priv.secret());
+
+		auto result = libbitcoin::encode_base64(sign);
+// 		printf("the signed message is %s\n", result.c_str());
+		return result;
 
 	}
 
