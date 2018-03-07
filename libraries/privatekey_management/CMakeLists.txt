@@ -14,7 +14,7 @@ set(sources
    )
 
 
-set(BOOST_INCLUDE_DIR "E:\\blocklink_project\\boost_1_57_0")
+set(BOOST_INCLUDE_DIR $ENV{BOOST_ROOT})
 
 add_library( privatekey_management
              ${sources}
@@ -35,9 +35,9 @@ else (Boost_FOUND)
 	message(STATUS "cannot found Boost library!")
 endif()
 
-add_executable( privatekey_management_exe_test main.cpp )
-target_link_libraries(privatekey_management_exe_test PRIVATE privatekey_management ${Boost_LIBRARIES} ${CMAKE_CURRENT_SOURCE_DIR}/third_lib/threadsafestatics.lib)
-target_include_directories(privatekey_management_exe_test PRIVATE ${BOOST_ROOT}/)
+# add_executable( privatekey_management_exe_test main.cpp )
+# target_link_libraries(privatekey_management_exe_test PRIVATE privatekey_management ${Boost_LIBRARIES} ${CMAKE_CURRENT_SOURCE_DIR}/third_lib/threadsafestatics.lib)
+# target_include_directories(privatekey_management_exe_test PRIVATE ${BOOST_ROOT}/)
 
 if (USE_PCH)
   set_target_properties(privatekey_management PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
