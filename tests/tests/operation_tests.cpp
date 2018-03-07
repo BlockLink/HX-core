@@ -654,7 +654,7 @@ BOOST_FIXTURE_TEST_CASE(account_bind_operation_test,database_fixture)
 		auto prk = graphene::privatekey_management::crosschain_management::get_instance().get_crosschain_prk(op.crosschain_type);
 		auto wif_key = crosschain->create_normal_account("test");
 		auto pkey = prk->import_private_key(wif_key);
-		string tunnel_account = prk->get_address(*pkey);
+		string tunnel_account = prk->get_address();
 		op.tunnel_address = tunnel_account;
 
 		crosschain->create_signature(tunnel_account, tunnel_account, op.tunnel_signature,wif_key);

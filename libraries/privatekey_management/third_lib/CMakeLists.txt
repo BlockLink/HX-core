@@ -27,7 +27,7 @@ target_compile_definitions(privatekey_management_libbitcoin PUBLIC
 							WIN64
 							_WIN64
 							)
-target_include_directories(privatekey_management_libbitcoin PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libbitcoin/include PRIVATE ${BOOST_ROOT}/ )
+target_include_directories(privatekey_management_libbitcoin PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libbitcoin/include  ${BOOST_ROOT}/ )
 target_link_libraries(privatekey_management_libbitcoin PUBLIC fc)
 
 
