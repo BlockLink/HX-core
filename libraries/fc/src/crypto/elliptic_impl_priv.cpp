@@ -82,8 +82,8 @@ namespace fc { namespace ecc {
     }
 
     static int extended_nonce_function( unsigned char *nonce32, const unsigned char *msg32,
-                                        const unsigned char *key32, unsigned int attempt,
-                                        const void *data ) {
+                                        const unsigned char *key32, const unsigned char *algo16, 
+                                        void *data, unsigned int attempt) {
         unsigned int* extra = (unsigned int*) data;
         (*extra)++;
         return secp256k1_nonce_function_default( nonce32, msg32, key32, NULL , nullptr, *extra);
@@ -98,7 +98,8 @@ namespace fc { namespace ecc {
 		std::cout << "dfsdfsdfds" <<require_canonical << std::endl;
         do
         {
-            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (secp256k1_ecdsa_signature*)( result.begin() + 1), (unsigned char*) my->_key.data(), NULL, &counter, &recid ));
+            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (secp256k1_ecdsa_signature*)( result.begin() + 1 ), (unsigned char*) my->_key.data(), extended_nonce_function, &counter, &recid ));
+
         } while( require_canonical && !public_key::is_canonical( result ) );
         result.begin()[0] = 27 + 4 + recid;
         return result;

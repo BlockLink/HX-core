@@ -36,6 +36,10 @@ else (Boost_FOUND)
 endif()
 
 
+# add_executable( privatekey_management_exe_test main.cpp )
+# target_link_libraries(privatekey_management_exe_test PRIVATE privatekey_management ${Boost_LIBRARIES} ${CMAKE_CURRENT_SOURCE_DIR}/third_lib/threadsafestatics.lib)
+# target_include_directories(privatekey_management_exe_test PRIVATE ${BOOST_ROOT}/)
+
 
 if (USE_PCH)
   set_target_properties(privatekey_management PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
