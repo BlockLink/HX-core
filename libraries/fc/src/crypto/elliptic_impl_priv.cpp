@@ -1,7 +1,7 @@
 #include <fc/fwd_impl.hpp>
 
 #include <secp256k1.h>
-
+#include <iostream>
 #include "_elliptic_impl_priv.hpp"
 
 /* used by mixed + secp256k1 */
@@ -95,9 +95,10 @@ namespace fc { namespace ecc {
         compact_signature result;
         int recid;
         unsigned int counter = 0;
+		std::cout << "dfsdfsdfds" <<require_canonical << std::endl;
         do
         {
-            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (secp256k1_ecdsa_signature*) result.begin() + 1, (unsigned char*) my->_key.data(), NULL, &counter, &recid ));
+            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (secp256k1_ecdsa_signature*)( result.begin() + 1), (unsigned char*) my->_key.data(), NULL, &counter, &recid ));
         } while( require_canonical && !public_key::is_canonical( result ) );
         result.begin()[0] = 27 + 4 + recid;
         return result;

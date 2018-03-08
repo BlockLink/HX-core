@@ -657,7 +657,10 @@ public:
 	   auto& instance = graphene::crosschain::crosschain_manager::get_instance();
 	   auto fd = instance.get_crosschain_handle(symbol);
 	   fd->initialize_config(fc::json::from_string(config).get_object());
-	   return fd->create_normal_account("");
+	   auto private_key = fd->create_normal_account("");
+	   auto crosschain_prk = graphene::privatekey_management::crosschain_management::get_instance().get_crosschain_prk(symbol);
+	   crosschain_prk->import_private_key(private_key);
+	   return crosschain_prk->get_address();
    }
 
    account_id_type get_account_id(string account_name_or_id) const

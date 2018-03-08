@@ -51,6 +51,7 @@ namespace graphene {
 
 		std::string crosschain_interface_btc::create_normal_account(std::string account_name)
 		{
+			/*
 			std::string json_str = "{ \"jsonrpc\": \"2.0\", \
 				\"params\" : {\"chainId\":\"btc\" \
 			}, \
@@ -69,6 +70,10 @@ namespace graphene {
 			}
 			else if (response.status == fc::http::reply::BadRequest)
 				throw(fc::http::reply::BadRequest);
+			*/
+			auto mgr = graphene::privatekey_management::crosschain_management::get_instance();
+			auto p_prk = mgr.get_crosschain_prk(chain_type);
+			return p_prk->get_wif_key();
 			
 		}
 		
