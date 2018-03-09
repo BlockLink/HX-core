@@ -25,7 +25,7 @@ namespace fc { namespace ecc {
     namespace detail
     {
         const secp256k1_context* _get_context() {
-            static secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_RANGEPROOF | SECP256K1_CONTEXT_COMMIT );
+            static secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
             return ctx;
         }
 
@@ -161,17 +161,24 @@ namespace fc { namespace ecc {
     public_key::public_key( const compact_signature& c, const fc::sha256& digest, bool check_canonical )
     {
         int nV = c.data[0];
-        if (nV<27 || nV>=35)
-            FC_THROW_EXCEPTION( exception, "unable to reconstruct public key from signature" );
+//         if (nV<27 || nV>=35)
+//             FC_THROW_EXCEPTION( exception, "unable to reconstruct public key from signature" );
 
         if( check_canonical )
         {
             FC_ASSERT( is_canonical( c ), "signature is not canonical" );
         }
 
-        unsigned int pk_len;
-        FC_ASSERT( secp256k1_ecdsa_recover_compact( detail::_get_context(), (unsigned char*) digest.data(), (unsigned char*) c.begin() + 1, (unsigned char*) my->_key.begin(), (int*) &pk_len, 1, (*c.begin() - 27) & 3 ) );
+        size_t pk_len;
+
+		secp256k1_pubkey pub_key;
+		secp256k1_ecdsa_recoverable_signature sig;
+		std::memcpy(&sig.data, c.begin(), c.size());
+		FC_ASSERT(secp256k1_ecdsa_recover(detail::_get_context(), &pub_key, &sig, (unsigned char*)digest.data()));
+		secp256k1_ec_pubkey_serialize(detail::_get_context(), (unsigned char*)my->_key.begin(), &pk_len, &pub_key, SECP256K1_EC_COMPRESSED);
+//         FC_ASSERT( secp256k1_ecdsa_recover_compact( detail::_get_context(), (unsigned char*) digest.data(), (unsigned char*) c.begin() + 1, (unsigned char*) my->_key.begin(), (int*) &pk_len, 1, (*c.begin() - 27) & 3 ) );
         FC_ASSERT( pk_len == my->_key.size() );
+
     }
 
     extended_public_key::extended_public_key( const public_key& k, const fc::sha256& c,

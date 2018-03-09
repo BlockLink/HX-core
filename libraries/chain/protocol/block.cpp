@@ -49,7 +49,9 @@ namespace graphene { namespace chain {
 
    fc::ecc::public_key signed_block_header::signee()const
    {
+	   printf("here3");
       return fc::ecc::public_key( miner_signature, digest(), true/*enforce canonical*/ );
+	  printf("here4");
    }
 
    void signed_block_header::sign( const fc::ecc::private_key& signer )
@@ -59,6 +61,7 @@ namespace graphene { namespace chain {
 
    bool signed_block_header::validate_signee( const fc::ecc::public_key& expected_signee )const
    {
+	   printf("here2");
       return signee() == expected_signee;
    }
 

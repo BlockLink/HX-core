@@ -1,7 +1,9 @@
 #include <fc/fwd_impl.hpp>
 
 #include <secp256k1.h>
+#include <secp256k1_recovery.h>
 #include <iostream>
+#include <cstring>
 #include "_elliptic_impl_priv.hpp"
 
 /* used by mixed + secp256k1 */
@@ -67,18 +69,30 @@ namespace fc { namespace ecc {
        EC_KEY_free(k);
     }
 
-    public_key private_key::get_public_key()const
+    public_key private_key::get_public_key(bool iscompressed)const
     {
        FC_ASSERT( my->_key != empty_priv );
 
 	   secp256k1_pubkey pub_key;
 	   FC_ASSERT(secp256k1_ec_pubkey_create(detail::_get_context(), &pub_key, (unsigned char*)my->_key.data()));
 
-       public_key_data pub;
-       size_t pk_len = pub.size();
-       secp256k1_ec_pubkey_serialize(detail::_get_context(), (unsigned char*)pub.begin(), &pk_len, &pub_key, SECP256K1_EC_COMPRESSED);
-       FC_ASSERT( pk_len == pub.size() );
-       return public_key(pub);
+	   if (iscompressed)
+	   {
+		   public_key_data pub;
+		   size_t pk_len = pub.size();
+		   secp256k1_ec_pubkey_serialize(detail::_get_context(), (unsigned char*)pub.begin(), &pk_len, &pub_key, SECP256K1_EC_COMPRESSED);
+		   FC_ASSERT(pk_len == pub.size());
+		   return public_key(pub);
+	   }
+	   else
+	   {
+		   public_key_point_data pub;
+		   size_t pk_len = pub.size();
+		   secp256k1_ec_pubkey_serialize(detail::_get_context(), (unsigned char*)pub.begin(), &pk_len, &pub_key, SECP256K1_EC_UNCOMPRESSED);
+		   FC_ASSERT(pk_len == pub.size());
+		   return public_key(pub);
+	   }
+       
     }
 
     static int extended_nonce_function( unsigned char *nonce32, const unsigned char *msg32,
@@ -86,22 +100,27 @@ namespace fc { namespace ecc {
                                         void *data, unsigned int attempt) {
         unsigned int* extra = (unsigned int*) data;
         (*extra)++;
-        return secp256k1_nonce_function_default( nonce32, msg32, key32, NULL , nullptr, *extra);
+        return secp256k1_nonce_function_default( nonce32, msg32, key32, NULL,  nullptr, *extra);
     }
 
     compact_signature private_key::sign_compact( const fc::sha256& digest, bool require_canonical )const
     {
         FC_ASSERT( my->_key != empty_priv );
         compact_signature result;
+		secp256k1_ecdsa_recoverable_signature tmp_sig;
         int recid;
         unsigned int counter = 0;
-		std::cout << "dfsdfsdfds" <<require_canonical << std::endl;
         do
         {
-            FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), (secp256k1_ecdsa_signature*)( result.begin() + 1 ), (unsigned char*) my->_key.data(), extended_nonce_function, &counter, &recid ));
+			FC_ASSERT(secp256k1_ecdsa_sign_recoverable(detail::_get_context(), &tmp_sig, (unsigned char*)digest.data(), (unsigned char*)my->_key.data(), extended_nonce_function, &counter));
+			
+//             FC_ASSERT( secp256k1_ecdsa_sign_compact( detail::_get_context(), (unsigned char*) digest.data(), &tmp_sig, (unsigned char*) my->_key.data(), NULL, &counter, &recid ));
+			std::memcpy(result.begin(), (const void*)&tmp_sig.data, result.size());
 
         } while( require_canonical && !public_key::is_canonical( result ) );
-        result.begin()[0] = 27 + 4 + recid;
+
+		
+//         result.begin()[0] = 27 + 4 + recid;
         return result;
     }
 

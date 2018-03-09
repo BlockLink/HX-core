@@ -126,7 +126,7 @@ namespace fc {
            compact_signature sign_compact( const fc::sha256& digest, bool require_canonical = true )const;
 //           bool              verify( const fc::sha256& digest, const signature& sig );
 
-           public_key get_public_key()const;
+           public_key get_public_key(bool iscompressed = true)const;
 
            inline friend bool operator==( const private_key& a, const private_key& b )
            {

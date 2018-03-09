@@ -37,6 +37,9 @@
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/evaluator.hpp>
 
+#include <fc/crypto/hex.hpp>
+#include <graphene/utilities/key_conversion.hpp>
+
 #include <fc/smart_ref_impl.hpp>
 
 namespace graphene { namespace chain {
@@ -698,8 +701,46 @@ const miner_object& database::validate_block_header( uint32_t skip, const signed
    FC_ASSERT( head_block_time() < next_block.timestamp, "", ("head_block_time",head_block_time())("next",next_block.timestamp)("blocknum",next_block.block_num()) );
    const miner_object& witness = next_block.miner(*this);
 
+//    printf("the id is %s\n", string(witness.id).c_str());
+//    auto signature = next_block.miner_signature;
+//    auto digest = next_block.digest();
+//    printf("the sig is %s\n", fc::to_hex((const char*)signature.begin(), signature.size()).c_str());
+//    printf("the digest is %s\n", digest.str().c_str());
+
+	  std::string msg = "35ef7f6ad288501107cef1212173a144b3e2614add53b757f52d06a8a17afee7";
+	  fc::sha256 data(msg);
+	  auto tmp = graphene::utilities::wif_to_key("5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3");
+      auto priv_key = *tmp;
+	  
+	  auto result = priv_key.sign_compact(data);
+	  printf("the sig is %s\n", fc::to_hex((const char*)result.begin(), result.size()).c_str());
+
+
+
+//    auto priv_key = fc::ecc::private_key::generate();
+//    auto tmp = graphene::utilities::wif_to_key("5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3");
+//    auto priv_key = *tmp;
+//    fc::ecc::public_key_data key_data = priv_key.get_public_key().serialize();
+// 
+//    printf("the compressed pubkey is: %s\n",  fc::to_hex(key_data.begin(), key_data.size()).c_str());
+// 
+// 
+//    std::string message = "5361746f736869204e616b616d6f746f";
+//    fc::sha256 data(message);
+//    auto result = priv_key.sign_compact(data);
+// 
+//    auto pub_key = fc::ecc::public_key(result, data);
+//    key_data = pub_key.serialize();
+//    printf("recovered  pubkey is: %s\n", fc::to_hex(key_data.begin(), key_data.size()).c_str());
+
+//    printf("%s\n", fc::ecc::public_key(witness.signing_key.key_data).to_base58().c_str());
+// 
+//    printf("%s\n", next_block.signee().to_base58().c_str());
+
    if( !(skip&skip_miner_signature) ) 
       FC_ASSERT( next_block.validate_signee( witness.signing_key ) );
+
+   printf("here1");
 
    if( !(skip&skip_witness_schedule_check) )
    {
