@@ -1,38 +1,49 @@
-list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/libraries/fc/GitVersionGen" )
-include( GetGitRevisionDescription )
-get_git_head_revision(GIT_REFSPEC GRAPHENE_GIT_REVISION_SHA)
-get_git_unix_timestamp(GRAPHENE_GIT_REVISION_UNIX_TIMESTAMP)
-git_describe(GRAPHENE_GIT_REVISION_DESCRIPTION --tags)
-if(NOT GRAPHENE_GIT_REVISION_DESCRIPTION)
-    set(GRAPHENE_GIT_REVISION_DESCRIPTION "unknown")
-endif(NOT GRAPHENE_GIT_REVISION_DESCRIPTION)
+message(STATUS "Configuring project privatekey_management located in: ${CMAKE_CURRENT_SOURCE_DIR}")
 
-file(GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR} *.hpp *.h)
 
-#file(GLOB_RECURSE BTCSRC ${CMAKE_CURRENT_SOURCE_DIR}/btc  *.cpp)
+find_package(Boost REQUIRED COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context locale iostreams regex)
+
+if (Boost_FOUND)
+	message(STATUS "found boost library!")
+else (Boost_FOUND)
+	message(STATUS "cannot found Boost library!")
+endif()
+
+
+add_subdirectory(third_lib)
+
+# build library privatekey_management
+message(STATUS "build library privatekey_management")
+file(GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp   ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+message(STATUS "HEADERS: ${HEADERS}")
 
 set(sources
    private_key.cpp
    database_privatekey.cpp
-#   ${BTCSRC}
    ${HEADERS}
    )
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/git_revision.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/git_revision.cpp" @ONLY)
-list(APPEND sources "${CMAKE_CURRENT_BINARY_DIR}/git_revision.cpp")
 
-
+set(BOOST_INCLUDE_DIR $ENV{BOOST_ROOT})
 
 add_library( privatekey_management
              ${sources}
              ${HEADERS} )
-target_link_libraries( privatekey_management graphene_chain )
+
+
+target_link_libraries( privatekey_management PUBLIC privatekey_management_libbitcoin graphene_chain ${CMAKE_CURRENT_SOURCE_DIR}/third_lib/threadsafestatics.lib)
 target_include_directories( privatekey_management
-                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
-							
+                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include 
+							PRIVATE ${BOOST_INCLUDE_DIR}/)
+	
+
+
+
 
 add_executable( privatekey_management_exe_test main.cpp )
-target_link_libraries(privatekey_management_exe_test privatekey_management)
+target_link_libraries(privatekey_management_exe_test PRIVATE privatekey_management ${Boost_LIBRARIES} ${CMAKE_CURRENT_SOURCE_DIR}/third_lib/threadsafestatics.lib)
+target_include_directories(privatekey_management_exe_test PRIVATE ${BOOST_ROOT}/)
+
 
 if (USE_PCH)
   set_target_properties(privatekey_management PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
