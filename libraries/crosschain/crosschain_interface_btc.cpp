@@ -6,7 +6,7 @@
 #include <fc/variant.hpp>
 #include <fc/variant_object.hpp>
 #include <iostream>
-#include <graphene/privatekey_management/private_key.hpp>
+#include <graphene/crosschain_privatekey_management/private_key.hpp>
 namespace graphene {
 	namespace crosschain {
 

@@ -79,7 +79,7 @@
 #include <graphene/chain/storage.hpp>
 #include <graphene/chain/contract_object.hpp>
 #include <graphene/chain/contract_evaluate.hpp>
-#include <graphene/privatekey_management/database_privatekey.hpp>
+#include <graphene/crosschain_privatekey_management/database_privatekey.hpp>
 #ifndef WIN32
 # include <sys/types.h>
 # include <sys/stat.h>
