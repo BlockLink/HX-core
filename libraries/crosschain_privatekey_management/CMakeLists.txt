@@ -51,9 +51,9 @@ target_compile_definitions( crosschain_privatekey_management PUBLIC
 							WIN64
 							_WIN64   
 							)
-target_link_libraries( crosschain_privatekey_management PUBLIC graphene_chain $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/blocklink_libbitcoin_secp256k1.lib 
-                                                               $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/blocklink_libbitcoin.lib
-															   $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/threadsafestatics.lib
+target_link_libraries( crosschain_privatekey_management PUBLIC graphene_chain  $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/libbitcoin/threadsafestatics.lib
+                                                                $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/third_libs/blocklink_libbitcoin_secp256k1.lib 
+                                                                $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/third_libs/blocklink_libbitcoin.lib
 															   )
 target_include_directories( crosschain_privatekey_management
                             PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include  $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/secp256k1/include $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/libbitcoin/include  
@@ -64,9 +64,9 @@ target_include_directories( crosschain_privatekey_management
 
 add_executable( crosschain_privatekey_management_exe main.cpp )
 target_link_libraries(crosschain_privatekey_management_exe PRIVATE crosschain_privatekey_management ${Boost_LIBRARIES}
-														   $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/blocklink_libbitcoin_secp256k1.lib 
-                                                           $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/blocklink_libbitcoin.lib 														    
-														   $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/threadsafestatics.lib
+                                                            $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/third_libs/blocklink_libbitcoin_secp256k1.lib 
+                                                            $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/third_libs/blocklink_libbitcoin.lib 														    
+														   
 														   )
 target_include_directories(crosschain_privatekey_management_exe PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include  $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/secp256k1/include  $ENV{CROSSCHAIN_PRIVATEKEY_PROJECT}/libbitcoin/include PRIVATE ${BOOST_ROOT}/)
 
