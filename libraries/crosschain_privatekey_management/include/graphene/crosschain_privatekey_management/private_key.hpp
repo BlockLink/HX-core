@@ -31,6 +31,7 @@ namespace graphene {
 
 			virtual std::string get_wif_key() = 0;
 			virtual std::string get_address() = 0;
+            virtual std::string get_public_key() = 0;
 			virtual fc::optional<fc::ecc::private_key>  import_private_key(std::string& wif_key) = 0;
 
 			bool is_empty() const {	return _key == fc::ecc::private_key(); }
@@ -66,6 +67,7 @@ namespace graphene {
 
 			virtual std::string get_wif_key() ;
 			virtual std::string get_address() ;
+            virtual std::string get_public_key();
 			virtual fc::optional<fc::ecc::private_key>  import_private_key(std::string& wif_key) ;
 
 		private:
@@ -83,6 +85,7 @@ namespace graphene {
 
 			virtual std::string get_wif_key();
 			virtual std::string get_address();
+            virtual std::string get_public_key();
 			virtual fc::optional<fc::ecc::private_key>  import_private_key(std::string& wif_key);
 
 		private:

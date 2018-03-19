@@ -142,6 +142,19 @@ namespace graphene { namespace privatekey_management {
 		return addr;
     }
 
+    
+
+    std::string btc_privatekey::get_public_key()
+    {
+        libbitcoin::wallet::ec_private libbitcoin_priv(get_wif_key());
+
+        libbitcoin::wallet::ec_public libbitcoin_pub = libbitcoin_priv.to_public();
+        std::string pub_hex = libbitcoin_pub.encoded();
+
+        return pub_hex;
+
+    }
+
 	fc::optional<fc::ecc::private_key>   btc_privatekey::import_private_key(std::string& wif_key)
 	{
 		return graphene::utilities::wif_to_key(wif_key);
@@ -212,6 +225,17 @@ namespace graphene { namespace privatekey_management {
 
 		return addr;
 	}
+
+    std::string ltc_privatekey::get_public_key()
+    {
+        libbitcoin::wallet::ec_private libbitcoin_priv(get_wif_key());
+
+        libbitcoin::wallet::ec_public libbitcoin_pub = libbitcoin_priv.to_public();
+        std::string pub_hex = libbitcoin_pub.encoded();
+
+        return pub_hex;
+
+    }
 
 	fc::optional<fc::ecc::private_key> ltc_privatekey::import_private_key(std::string& wif_key)
 	{
