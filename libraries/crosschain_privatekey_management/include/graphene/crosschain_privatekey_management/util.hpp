@@ -14,15 +14,13 @@
 
 #include <assert.h>
 
-std::string get_address_by_pubkey(const std::string& pubkey_hex_str, uint8_t version)
-{
-    //get public key
-    libbitcoin::wallet::ec_public libbitcoin_pub(pubkey_hex_str);
-    FC_ASSERT(libbitcoin_pub != libbitcoin::wallet::ec_public(), "the pubkey hex str is in valid!");
+namespace graphene {
+    namespace privatekey_management {
 
-    auto addr = libbitcoin_pub.to_payment_address(version);
+        std::string get_address_by_pubkey(const std::string& pubkey_hex_str, uint8_t version);
 
-    return addr.encoded();
+    }
+
 
 }
 

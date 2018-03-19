@@ -21,6 +21,7 @@ message(STATUS "HEADERS: ${HEADERS}")
 set(sources
    private_key.cpp
    database_privatekey.cpp
+   util.cpp
    ${HEADERS}
    )
 
