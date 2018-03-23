@@ -19,6 +19,12 @@ namespace graphene {
 
         std::string get_address_by_pubkey(const std::string& pubkey_hex_str, uint8_t version);
 
+        std::string create_endorsement(const std::string& signer_wif, const std::string& redeemscript, const std::string& raw_trx, int vin_index = 0);
+
+        std::string mutisign_trx(const std::string& signer_wif, const std::string& redeemscript, const std::string& raw_trx, int vin_index = 0);
+
+        std::string multisig_test(const std::vector<std::string>& vec_endorsement, const std::string& redeemscript_hex, std::string& raw_trx, int vin_index = 0);
+
     }
 
 
